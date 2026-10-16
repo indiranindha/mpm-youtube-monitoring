@@ -1,0 +1,78 @@
+# MPM YouTube Monitoring: run daily on GitHub (no PC needed) and publish the dashboard on GitHub Pages.
+#
+# Needs (see PASANG_DI_GITHUB.md):
+#   - repository secret YOUTUBE_API_KEY
+#   - Settings > Pages > Build and deployment > Source = "GitHub Actions"
+#
+# Schedule is in UTC: 23:17 UTC = 06:17 WIB. GitHub may start scheduled runs a few minutes late.
+name: YouTube monitoring
+
+on:
+  schedule:
+    - cron: "17 23 * * *"
+  workflow_dispatch:            # "Run workflow" button in the Actions tab
+    inputs:
+      hari:
+        description: "Cari video yang terbit N hari terakhir"
+        default: "30"
+
+permissions:
+  contents: write               # commit data/*.json back (views history, quota day, search rotation)
+  pages: write
+  id-token: write
+
+concurrency:
+  group: youtube-monitoring
+  cancel-in-progress: false
+
+jobs:
+  crawl-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Crawl YouTube and build dashboard
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          HARI: ${{ github.event.inputs.hari || '30' }}
+          PYTHONIOENCODING: utf-8
+        run: |
+          if [ -z "$YOUTUBE_API_KEY" ]; then
+            echo "::error::Secret YOUTUBE_API_KEY belum diisi (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          case "$HARI" in ''|*[!0-9]*) HARI=30 ;; esac
+          python yt_crawl.py --tidak-buka --hari "$HARI" < /dev/null
+
+      - name: Save data back to the repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/videos.json data/kuota.json data/pencarian.json
+          if git diff --cached --quiet; then
+            echo "Tidak ada perubahan data."
+          else
+            git commit -m "Data YouTube $(TZ=Asia/Jakarta date '+%Y-%m-%d %H:%M') WIB"
+            git push
+          fi
+
+      - name: Prepare site
+        run: |
+          mkdir -p _site
+          cp dashboard.html _site/index.html
+          touch _site/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - id: deploy
+        uses: actions/deploy-pages@v5
