@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MPM YouTube Monitoring</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f4f3f0;--surface:#fcfcfb;--surface2:#f0efec;--line:#e2e0da;--line2:#d0cec6;
+  --ink:#0b0b0b;--ink2:#52514e;--ink3:#7a7974;--accent:#2a78d6;--accent-ink:#1c5cab;--wash:rgba(42,120,214,.10);
+  --s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;--s4:#eda100;--s5:#e87ba4;--s6:#008300;--s7:#6250d6;--s8:#e34948;--other:#a8a69e;
+  --hot:#c2410c;--up:#15803d;--down:#b91c1c;--new:#c2410c;--shadow:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){
+  color-scheme:dark;
+  --bg:#121211;--surface:#1a1a19;--surface2:#232321;--line:#2e2e2b;--line2:#3d3d39;
+  --ink:#f0efec;--ink2:#c3c2b7;--ink3:#8f8e86;--accent:#3987e5;--accent-ink:#86b6ef;--wash:rgba(57,135,229,.16);
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;--other:#6b6a64;
+  --hot:#fb923c;--up:#4ade80;--down:#f87171;--new:#fb923c;--shadow:none;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#121211;--surface:#1a1a19;--surface2:#232321;--line:#2e2e2b;--line2:#3d3d39;
+  --ink:#f0efec;--ink2:#c3c2b7;--ink3:#8f8e86;--accent:#3987e5;--accent-ink:#86b6ef;--wash:rgba(57,135,229,.16);
+  --s1:#3987e5;--s2:#d95926;--s3:#199e70;--s4:#c98500;--s5:#d55181;--s6:#008300;--s7:#9085e9;--s8:#e66767;--other:#6b6a64;
+  --hot:#fb923c;--up:#4ade80;--down:#f87171;--new:#fb923c;--shadow:none;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 "Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+a{color:var(--accent-ink)}
+.wrap{max-width:1440px;margin:0 auto;padding:20px 24px 48px}
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+h1{font-size:22px;line-height:1.2;margin:0;font-weight:650;letter-spacing:-.01em}
+.sub{color:var(--ink2);font-size:13px;margin-top:4px}
+.hdr-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.quota{font-size:12px;color:var(--ink2);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.meter{width:80px;height:6px;border-radius:3px;background:var(--surface2);overflow:hidden;display:inline-block;vertical-align:middle;margin-left:6px}
+.meter>i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.btn{border:1px solid var(--line2);background:var(--surface);border-radius:8px;padding:6px 12px;cursor:pointer}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.notes{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--s4);border-radius:8px;padding:10px 14px;margin-bottom:14px;color:var(--ink2);font-size:13px}
+/* tier tabs */
+.tiers{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.tier{display:flex;flex-direction:column;align-items:flex-start;gap:1px;border:1px solid var(--line2);background:var(--surface);border-radius:10px;padding:8px 14px 8px 12px;cursor:pointer;min-width:150px;text-align:left;position:relative}
+.tier:hover{background:var(--surface2)}
+.tier b{font-size:14px;display:flex;align-items:center;gap:7px}
+.tier b i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.tier span{font-size:12px;color:var(--ink2)}
+.tier[aria-pressed=true]{border-color:var(--accent);background:var(--wash);box-shadow:inset 0 0 0 1px var(--accent)}
+.rot{font-size:12px;color:var(--ink3);margin:0 0 12px}
+/* filters */
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.filters select,.filters input[type=search]{height:34px;border:1px solid var(--line2);background:var(--surface);border-radius:8px;padding:0 10px;min-width:0;max-width:100%}
+.filters input[type=search]{width:220px}
+.filters select{max-width:260px}
+.seg{display:inline-flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;padding:0 11px;height:32px;cursor:pointer;color:var(--ink2);white-space:nowrap}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--wash);color:var(--accent-ink);font-weight:600}
+.seg.sm button{height:26px;padding:0 9px;font-size:12px}
+.toggle{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 10px;border:1px solid var(--line2);border-radius:8px;background:var(--surface);cursor:pointer;user-select:none;white-space:nowrap}
+.toggle input{accent-color:var(--accent);width:15px;height:15px;margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 6px 3px 10px;border-radius:99px;background:var(--wash);color:var(--accent-ink);font-size:12px;font-weight:600}
+.chip button{border:0;background:transparent;cursor:pointer;color:inherit;font-size:14px;line-height:1;padding:0 4px}
+/* kpis */
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.kpi{padding:13px 15px}
+.kpi .l{font-size:12px;color:var(--ink2)}
+.kpi .v{font-size:26px;font-weight:650;letter-spacing:-.02em;line-height:1.15;margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi .d{font-size:12px;color:var(--ink3);margin-top:2px}
+/* panels */
+.grid2{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);gap:12px;margin-bottom:12px}
+.grid2b{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.panel{padding:14px 16px 12px;min-width:0}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.panel h2{font-size:14px;margin:0;font-weight:640;display:flex;align-items:center;gap:6px}
+.panel .hint{font-size:12px;color:var(--ink3);margin:2px 0 8px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink2);margin:0 0 6px}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+svg{display:block;overflow:visible}
+svg text{fill:var(--ink3);font-size:11px}
+.axis line{stroke:var(--line)}
+.mark{cursor:pointer;transition:opacity .12s}
+.mark:hover,.mark:focus{opacity:.8;outline:none}
+.dim{opacity:.3}
+.hbar-row{display:grid;grid-template-columns:minmax(90px,40%) 1fr auto;align-items:center;gap:8px;padding:3px 4px;border-radius:6px;cursor:pointer;font-size:12.5px}
+.hbar-row:hover,.hbar-row:focus{background:var(--surface2);outline:none}
+.hbar-row.sel{background:var(--wash)}
+.hbar-row .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.hbar-row .b{height:12px;position:relative}
+.hbar-row .b i{position:absolute;left:0;top:0;bottom:0;border-radius:0 4px 4px 0;background:var(--accent)}
+.hbar-row .v{color:var(--ink2);font-variant-numeric:tabular-nums;min-width:28px;text-align:right}
+.empty{color:var(--ink3);font-size:13px;padding:24px 0;text-align:center}
+/* hot topics */
+.ht{width:100%;border-collapse:collapse;font-size:12.5px}
+.ht th{font-weight:600;color:var(--ink3);text-align:left;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap;font-size:11.5px}
+.ht td{padding:6px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ht tr.row{cursor:pointer}
+.ht tr.row:hover,.ht tr.row:focus{background:var(--surface2);outline:none}
+.ht tr.row.sel{background:var(--wash)}
+.ht .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ht .rk{color:var(--ink3);width:22px;font-variant-numeric:tabular-nums}
+.ht .tp{font-weight:600;line-height:1.3}
+.ht .tp small{display:block;font-weight:400;color:var(--ink3);font-size:11.5px;margin-top:1px}
+.heat{color:var(--hot);font-weight:650}
+.mom{font-weight:600;font-size:12px}
+.mom.up{color:var(--up)}.mom.down{color:var(--down)}.mom.flat{color:var(--ink3)}.mom.new{color:var(--hot)}
+.tb{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:0 6px;border-radius:4px;border:1px solid currentColor;line-height:16px;white-space:nowrap}
+.hide-sm{}
+/* hot content */
+.hc{display:flex;flex-direction:column;gap:2px}
+.hci{display:grid;grid-template-columns:22px 104px 1fr;gap:10px;align-items:center;padding:6px 4px;border-radius:8px;cursor:pointer}
+.hci:hover,.hci:focus{background:var(--surface2);outline:none}
+.hci .rk{color:var(--ink3);font-variant-numeric:tabular-nums;text-align:right;font-size:12px}
+.hci .th{aspect-ratio:16/9;border-radius:6px;overflow:hidden;background:var(--surface2);position:relative}
+.hci .th img{width:100%;height:100%;object-fit:cover;display:block}
+.hci .t{font-weight:600;font-size:12.5px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.hci .m{font-size:11.5px;color:var(--ink2);margin-top:2px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#tip{position:fixed;pointer-events:none;z-index:50;background:var(--surface);border:1px solid var(--line2);border-radius:8px;padding:8px 10px;font-size:12px;box-shadow:0 4px 16px rgba(0,0,0,.15);display:none;max-width:280px}
+#tip b{font-size:14px;color:var(--ink)}
+#tip .r{display:flex;align-items:center;gap:6px;color:var(--ink2)}
+#tip .r i{width:12px;height:2px;display:inline-block}
+/* results */
+.res-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:6px 0 10px}
+.res-head h2{font-size:16px;margin:0}
+.grid-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.vcard{overflow:hidden;display:flex;flex-direction:column;cursor:pointer}
+.vcard:hover{border-color:var(--line2)}
+.vcard:focus{outline:2px solid var(--accent);outline-offset:1px}
+.thumb{position:relative;aspect-ratio:16/9;background:var(--surface2)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.dur{position:absolute;right:6px;bottom:6px;background:rgba(0,0,0,.78);color:#fff;font-size:11.5px;padding:1px 5px;border-radius:4px;font-weight:600}
+.newb{position:absolute;left:6px;top:6px;background:var(--new);color:#fff;font-size:10.5px;padding:1px 6px;border-radius:4px;font-weight:700;letter-spacing:.03em}
+.hotb{position:absolute;right:6px;top:6px;background:rgba(0,0,0,.72);color:#fff;font-size:10.5px;padding:1px 6px;border-radius:4px;font-weight:700}
+.livb{position:absolute;left:6px;bottom:6px;background:#d93025;color:#fff;font-size:10.5px;padding:1px 6px;border-radius:4px;font-weight:700}
+.vbody{padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;flex:1}
+.vtitle{font-weight:600;font-size:13.5px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vmeta{font-size:12px;color:var(--ink2);display:flex;flex-wrap:wrap;gap:2px 10px;align-items:center}
+.vstats{font-size:12px;color:var(--ink2);display:flex;gap:12px;font-variant-numeric:tabular-nums;margin-top:auto;flex-wrap:wrap}
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--line2);color:var(--ink2);display:inline-flex;align-items:center;gap:5px;max-width:100%}
+.tag i{width:7px;height:7px;border-radius:2px;display:inline-block;flex:none}
+.tag.nomatch{border-style:dashed;color:var(--ink3)}
+.more{display:flex;justify-content:center;margin-top:16px}
+.rt{width:100%;border-collapse:collapse;font-size:12.5px}
+.rt th,.rt td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.rt th{position:sticky;top:0;background:var(--surface);color:var(--ink2);font-weight:600;cursor:pointer;white-space:nowrap;user-select:none}
+.rt th.num,.rt td.num{text-align:right;font-variant-numeric:tabular-nums}
+.rt tbody tr:hover{background:var(--surface2)}
+.tbl-wrap{overflow:auto;max-height:70vh}
+/* modal */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+#modal .box{position:relative;background:var(--surface);border-radius:14px;max-width:980px;width:100%;max-height:94vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.player{aspect-ratio:16/9;background:#000;border-radius:14px 14px 0 0;overflow:hidden}
+.player iframe{width:100%;height:100%;border:0;display:block}
+.player a.poster{position:relative;display:block;width:100%;height:100%}
+.player a.poster img{width:100%;height:100%;object-fit:cover;display:block;opacity:.85}
+.player a.poster span{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#fff;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+.player a.poster b{width:72px;height:50px;border-radius:12px;background:#d93025;display:flex;align-items:center;justify-content:center;font-size:22px;text-shadow:none}
+.mbody{padding:16px 20px 20px;display:grid;grid-template-columns:1fr 260px;gap:20px}
+.mbody h3{margin:0 0 6px;font-size:17px;line-height:1.3}
+.desc{white-space:pre-wrap;font-size:13px;color:var(--ink2);max-height:220px;overflow:auto;border-top:1px solid var(--line);padding-top:10px;margin-top:10px}
+.side dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:12.5px}
+.side dt{color:var(--ink3)}
+.side dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.close{position:absolute;top:10px;right:10px;border:0;background:rgba(0,0,0,.6);color:#fff;border-radius:99px;width:32px;height:32px;cursor:pointer;font-size:18px;z-index:2}
+.hidden{display:none!important}
+@media (max-width:1180px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.grid2,.grid2b{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){.wrap{padding:14px 16px 40px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.filters input[type=search],.filters select{width:100%;max-width:none}.mbody{grid-template-columns:1fr}.kpi .v{font-size:21px}.tier{min-width:0;flex:1 1 45%}.hide-sm{display:none}.hci{grid-template-columns:18px 84px 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>MPM YouTube Monitoring</h1>
+      <div class="sub" id="updated"></div>
+    </div>
+    <div class="hdr-right">
+      <div class="quota" id="quota"></div>
+      <button class="btn" id="themeBtn" title="Ganti tema terang/gelap">◐ Tema</button>
+    </div>
+  </header>
+  <div id="notes" class="notes hidden"></div>
+
+  <div class="tiers" id="tiers" role="tablist" aria-label="Tier keyword"></div>
+  <div class="rot" id="rot"></div>
+
+  <div class="filters" role="toolbar" aria-label="Filter">
+    <div class="seg" id="period" aria-label="Periode terbit">
+      <button data-d="1">Hari ini</button><button data-d="7">7 hari</button><button data-d="14">14 hari</button><button data-d="30">30 hari</button><button data-d="0">Semua</button>
+    </div>
+    <input type="search" id="q" placeholder="Cari judul, channel, deskripsi…" aria-label="Cari">
+    <select id="kel" aria-label="Kelompok"></select>
+    <select id="channel" aria-label="Channel"><option value="">Semua channel</option></select>
+    <select id="minviews" aria-label="Minimal tayangan">
+      <option value="0">Tayangan: semua</option><option value="1000">≥ 1rb</option><option value="10000">≥ 10rb</option><option value="100000">≥ 100rb</option><option value="1000000">≥ 1jt</option>
+    </select>
+    <label class="toggle" title="Pencarian YouTube juga mengembalikan video yang hanya 'mirip'. Aktifkan untuk menampilkan hanya video yang judul/deskripsi/tag-nya benar-benar memuat keyword.">
+      <input type="checkbox" id="exact" checked> Hanya yang menyebut keyword
+    </label>
+    <label class="toggle"><input type="checkbox" id="onlynew"> Hanya baru</label>
+    <button class="btn" id="reset">Reset</button>
+  </div>
+  <div class="chips" id="active"></div>
+
+  <section class="kpis" id="kpis"></section>
+
+  <div class="grid2">
+    <div class="card panel">
+      <div class="ph">
+        <div>
+          <h2>🔥 Hot topics</h2>
+          <div class="hint" id="htHint">Topik yang paling banyak ditonton sekarang · klik untuk memfilter</div>
+        </div>
+        <div class="seg sm" id="htLevel" aria-label="Kelompokkan topik per"><button data-l="kw" aria-pressed="true">Per keyword</button><button data-l="kel">Per kelompok</button></div>
+      </div>
+      <div id="hot"></div>
+    </div>
+    <div class="card panel">
+      <h2>🔥 Hot content</h2>
+      <div class="hint">Video dengan laju tayangan tertinggi · klik untuk membuka</div>
+      <div id="hotc" class="hc"></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card panel">
+      <h2>Video terbit per hari</h2>
+      <div class="hint" id="dailyHint">klik batang untuk memfilter hari itu</div>
+      <div class="legend" id="lgDaily"></div>
+      <div id="daily"></div>
+    </div>
+    <div class="card panel">
+      <h2 id="byGroupTitle">Per tier</h2>
+      <div class="hint">Jumlah video · arahkan kursor untuk tayangan · klik untuk memfilter</div>
+      <div id="bygroup"></div>
+    </div>
+  </div>
+  <div class="grid2b">
+    <div class="card panel">
+      <h2>Channel teratas</h2>
+      <div class="hint">Jumlah video · arahkan kursor untuk tayangan &amp; subscriber · klik untuk memfilter</div>
+      <div id="bychannel"></div>
+    </div>
+    <div class="card panel">
+      <h2>Keyword paling banyak dibahas</h2>
+      <div class="hint">Jumlah video yang menyebut keyword · klik untuk memfilter</div>
+      <div id="bykw"></div>
+    </div>
+  </div>
+
+  <div class="res-head">
+    <h2 id="resTitle">Video</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <select id="sort" aria-label="Urutkan" style="height:34px;border:1px solid var(--line2);background:var(--surface);border-radius:8px;padding:0 10px">
+        <option value="hot">Paling hot (laju tayangan)</option><option value="pub">Terbaru terbit</option><option value="views">Tayangan terbanyak</option>
+        <option value="eng">Engagement tertinggi</option><option value="comments">Komentar terbanyak</option>
+      </select>
+      <div class="seg" id="viewmode"><button data-v="cards" aria-pressed="true">Kartu</button><button data-v="table">Tabel</button></div>
+      <button class="btn" id="csv">Unduh CSV</button>
+    </div>
+  </div>
+  <div id="results"></div>
+</div>
+
+<div id="tip" role="tooltip"></div>
+<div id="modal" role="dialog" aria-modal="true"><div class="box" id="mbox"></div></div>
+
+<script id="data" type="application/json">/*__DATA__*/null</script>
+<script>
+(function(){
+"use strict";
+const RAW = JSON.parse(document.getElementById("data").textContent || "null") || {videos:[],channels:{},tiers:{},keywords:[],quota:{}};
+const $ = s => document.querySelector(s);
+const NF = new Intl.NumberFormat("id-ID");
+const fmtN = n => n == null ? "–" : NF.format(Math.round(n));
+const fmtK = n => n == null ? "–" : n >= 1e6 ? (n/1e6).toLocaleString("id-ID",{maximumFractionDigits:1})+" jt" : n >= 1e3 ? (n/1e3).toLocaleString("id-ID",{maximumFractionDigits:1})+" rb" : String(Math.round(n));
+const BLN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+const WIB = 7*3600e3, DAY = 864e5, NOW = Date.now();
+function wib(iso){ const t = Date.parse(iso); return isNaN(t) ? null : new Date(t + WIB); }
+function dayKey(iso){ const d = wib(iso); return d ? d.toISOString().slice(0,10) : ""; }
+function fmtDate(iso, withTime){ const d = wib(iso); if(!d) return "–"; let s = d.getUTCDate()+" "+BLN[d.getUTCMonth()]+" "+d.getUTCFullYear(); if(withTime) s += ", "+String(d.getUTCHours()).padStart(2,"0")+":"+String(d.getUTCMinutes()).padStart(2,"0")+" WIB"; return s; }
+function fmtDay(k){ const [y,m,d] = k.split("-").map(Number); return d+" "+BLN[m-1]; }
+function fmtDur(s){ if(!s) return ""; const h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; return (h? h+":"+String(m).padStart(2,"0") : m)+":"+String(x).padStart(2,"0"); }
+function ago(iso){ const t = Date.parse(iso); if (isNaN(t)) return "belum pernah"; const h = (NOW - t)/36e5; return h < 1 ? "< 1 jam lalu" : h < 48 ? Math.round(h)+" jam lalu" : Math.round(h/24)+" hari lalu"; }
+function el(tag, attrs, ...kids){ const e = document.createElement(tag); if(attrs) for(const k in attrs){ const v = attrs[k]; if(v==null||v===false) continue; if(k==="class") e.className=v; else if(k==="text") e.textContent=v; else if(k.startsWith("on")) e.addEventListener(k.slice(2), v); else if(k==="style") e.style.cssText=v; else e.setAttribute(k, v===true?"":v); } for(const c of kids){ if(c==null||c===false) continue; e.append(c.nodeType? c : document.createTextNode(String(c))); } return e; }
+const SVGNS = "http://www.w3.org/2000/svg";
+function sv(tag, attrs){ const e = document.createElementNS(SVGNS, tag); for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+const imgErr = e => { e.target.style.visibility = "hidden"; };
+
+// ---------- metadata: tiers, kelompok, colours
+const TIERS = Object.keys(RAW.tiers||{}).map(Number).sort();
+if (!TIERS.length) TIERS.push(1);
+const TNAME = t => (RAW.tiers[t] && RAW.tiers[t].nama) || ("Tier "+t);
+const TSHORT = {1:"MPM", 2:"Industri", 3:"Pesaing"};
+const TCOL = t => `var(--s${((t-1)%8)+1})`;
+const KELS = {}; TIERS.forEach(t => KELS[t] = ((RAW.tiers[t]||{}).kelompok)||[]);
+const kelKey = (t, k) => t+"|"+k;
+const KCOL = {}; TIERS.forEach(t => KELS[t].forEach((k,i) => KCOL[kelKey(t,k)] = i < 8 ? `var(--s${i+1})` : "var(--other)"));
+const NOMATCH = "Hanya 'mirip' (tidak menyebut keyword)";
+const KWMETA = {}; (RAW.keywords||[]).forEach(k => KWMETA[k.kw] = k);
+const LAST_RUN = RAW.last_run ? RAW.last_run.waktu : null;
+
+// ---------- videos: hotness = views/day (recent growth between runs when known, else average since publish)
+function heatOf(v){
+  const views = v.views||0, age = Math.max(1, (NOW - (Date.parse(v.published)||NOW))/DAY);
+  const avg = views / age;
+  const h = (v.hist||[]).filter(x => x && x[0]);
+  if (h.length >= 2) {
+    const last = h[h.length-1], lastT = Date.parse(last[0]+"T00:00:00Z");
+    const first = h.find(x => lastT - Date.parse(x[0]+"T00:00:00Z") <= 7*DAY && x[0] !== last[0]);
+    if (first) { const days = (lastT - Date.parse(first[0]+"T00:00:00Z"))/DAY; if (days >= 1) return {heat: Math.max(0,(last[1]-first[1])/days), src:"naik per hari antar run"}; }
+  }
+  return {heat: avg, src:"rata-rata per hari sejak terbit"};
+}
+const V = RAW.videos.filter(v => !v.unavailable).map(v => {
+  const m = v.matched||[]; const hs = heatOf(v);
+  const tiers = [...new Set(m.map(x => x.tier))].sort();
+  return Object.assign({}, v, {
+    _m: m, _tiers: tiers.length ? tiers : [v.q_tier||1], _exact: m.length > 0,
+    _day: dayKey(v.published), _t: Date.parse(v.published)||0,
+    _eng: v.views ? ((v.likes||0)+(v.comments||0))/v.views : 0, _heat: hs.heat, _heatSrc: hs.src,
+    _new: !!(LAST_RUN && v.new_run === LAST_RUN),
+    _hay: ((v.title||"")+" "+(v.channel||"")+" "+(v.desc||"")).toLowerCase()
+  });
+});
+// "hot" badge = top 10% by heat among keyword-matching videos
+const HOTCUT = (() => { const a = V.filter(v=>v._exact).map(v=>v._heat).sort((x,y)=>y-x); return a.length >= 10 ? a[Math.floor(a.length*0.1)] : Infinity; })();
+
+const S = { tier: 0, days: 14, q: "", kel: "", channel: "", minv: 0, exact: true, onlynew: false, day: "", kw: "", sort: "hot", view: "cards", shown: 48, htLevel: "kw" };
+try { const t = localStorage.getItem("ytmon_theme"); if(t) document.documentElement.dataset.theme = t; } catch(e){}
+
+// which keyword matches count under the current tier
+const mt = v => S.tier ? v._m.filter(x => x.tier === S.tier) : v._m;
+function inTier(v){ return !S.tier || (v._exact ? v._tiers.includes(S.tier) : (v.q_tier||1) === S.tier); }
+// colour/group a video belongs to in the current view
+function groupOf(v){
+  if (!v._exact) return {key:"none", label:NOMATCH, color:"var(--other)"};
+  if (!S.tier) { const t = Math.min(...v._tiers); return {key:"t"+t, label:TNAME(t), color:TCOL(t), tier:t}; }
+  const m = mt(v)[0]; return m ? {key:kelKey(m.tier,m.kel), label:m.kel, color:KCOL[kelKey(m.tier,m.kel)]||"var(--other)", tier:m.tier, kel:m.kel} : {key:"none", label:NOMATCH, color:"var(--other)"};
+}
+
+// ---------- header
+$("#updated").textContent = "Data diperbarui " + (RAW.generated ? fmtDate(RAW.generated, true) : "–") + " · " + NF.format(V.length) + " video tersimpan";
+(function quota(){
+  const q = RAW.quota || {}; const box = $("#quota");
+  const m = (lbl, used, lim) => { const pct = lim ? Math.min(100, used/lim*100) : 0; const s = el("span", {title: `${lbl}: ${NF.format(used)} dari ${NF.format(lim)} hari ini (reset tengah malam waktu Pasifik ≈ 14:00–15:00 WIB)`}, `${lbl} ${NF.format(used)}/${NF.format(lim)}`); const mt = el("span",{class:"meter"}); mt.append(el("i",{style:`width:${pct}%`})); s.append(mt); return s; };
+  box.append(m("Pencarian", q.search_used||0, q.search_limit||100), m("Unit lain", q.units_used||0, q.units_limit||10000));
+})();
+if (RAW.notes && RAW.notes.length){ const n = $("#notes"); n.classList.remove("hidden"); RAW.notes.forEach(t => n.append(el("div", {text: "⚠ " + t}))); }
+$("#themeBtn").onclick = () => { const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"); const nx = cur === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = nx; try{localStorage.setItem("ytmon_theme", nx);}catch(e){} };
+// rotation coverage line
+(function rot(){
+  const parts = [];
+  TIERS.forEach(t => { const qs = {}; (RAW.keywords||[]).filter(k => k.tier === t && k.cari).forEach(k => { if (!qs[k.q] || k.last > qs[k.q]) qs[k.q] = k.last||""; });
+    const all = Object.keys(qs).length; if (!all) return; const fresh = Object.values(qs).filter(x => x && NOW - Date.parse(x) <= 48*36e5).length;
+    parts.push(`${TNAME(t)}: ${fresh}/${all} kata pencarian diperbarui ≤ 48 jam`); });
+  $("#rot").textContent = parts.join(" · ") + (parts.length ? " — tier 2 & 3 dicari bergiliran karena batas YouTube 100 pencarian/hari." : "");
+})();
+[...new Set(V.map(v => v.channel))].sort((a,b) => a.localeCompare(b)).forEach(c => $("#channel").append(el("option", {value: c, text: c})));
+
+// ---------- filtering
+function periodStart(){ if (!S.days) return 0; if (S.days === 1) return Date.parse(new Date(NOW + WIB).toISOString().slice(0,10)+"T00:00:00+07:00"); return NOW - S.days*DAY; }
+function base(skip){
+  const p0 = periodStart();
+  return V.filter(v => {
+    if (S.exact && !v._exact) return false;
+    if (skip !== "tier" && !inTier(v)) return false;
+    if (S.days && v._t < p0) return false;
+    if (S.q && !v._hay.includes(S.q)) return false;
+    if (skip !== "channel" && S.channel && v.channel !== S.channel) return false;
+    if (S.minv && (v.views||0) < S.minv) return false;
+    if (S.onlynew && !v._new) return false;
+    if (skip !== "kel" && S.kel && !v._m.some(x => kelKey(x.tier,x.kel) === S.kel)) return false;
+    if (skip !== "day" && S.day && v._day !== S.day) return false;
+    if (skip !== "kw" && S.kw && !v._m.some(x => x.kw === S.kw)) return false;
+    return true;
+  });
+}
+
+// ---------- tooltip
+const tip = $("#tip");
+function showTip(ev, build){ tip.textContent = ""; build(tip); tip.style.display = "block"; const r = tip.getBoundingClientRect(); let x = (ev.clientX ?? 0) + 14, y = (ev.clientY ?? 0) + 14; if (ev.type === "focus") { const b = ev.target.getBoundingClientRect(); x = b.left + Math.min(b.width/2, 200); y = b.top - r.height - 8; } if (x + r.width > innerWidth - 8) x = innerWidth - r.width - 8; if (y + r.height > innerHeight - 8) y = (ev.clientY ?? y) - r.height - 10; tip.style.left = Math.max(8,x)+"px"; tip.style.top = Math.max(8,y)+"px"; }
+function hideTip(){ tip.style.display = "none"; }
+function tipRows(t, title, rows){ t.append(el("div", {style:"color:var(--ink2);margin-bottom:4px", text:title})); rows.forEach(([col, lbl, val]) => { const r = el("div",{class:"r"}); if(col) r.append(el("i",{style:`background:${col}`})); r.append(el("b",{text: val}), " ", lbl); t.append(r); }); }
+function hover(node, build){ const show = e => showTip(e, build); node.addEventListener("pointermove", show); node.addEventListener("focus", show); node.addEventListener("pointerleave", hideTip); node.addEventListener("blur", hideTip); }
+function clicky(node, fn){ node.addEventListener("click", () => { hideTip(); fn(); }); node.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); hideTip(); fn(); } }); }
+
+// ---------- tier tabs
+function tierTabs(){
+  const box = $("#tiers"); box.textContent = "";
+  const s0 = S.tier; const cnt = t => { S.tier = t; const n = base().length; S.tier = s0; return n; };
+  [0].concat(TIERS).forEach(t => {
+    const b = el("button", {class:"tier", role:"tab", "aria-pressed": String(S.tier === t)});
+    b.append(el("b", {}, t ? el("i",{style:`background:${TCOL(t)}`}) : null, t ? TNAME(t) : "Semua tier"),
+             el("span", {text: NF.format(cnt(t)) + " video" + (t === 1 ? " · semua yang menyebut MPM" : t === 2 ? " · tren industri" : t === 3 ? " · pesaing & peer" : "")}));
+    b.onclick = () => { S.tier = t; S.kel = ""; S.kw = ""; S.day = ""; render(); };
+    box.append(b);
+  });
+}
+function kelSelect(){
+  const sel = $("#kel"); sel.textContent = "";
+  sel.append(el("option", {value:"", text: S.tier ? "Semua kelompok " + (TSHORT[S.tier]||"") : "Semua kelompok"}));
+  (S.tier ? [S.tier] : TIERS).forEach(t => {
+    const parent = S.tier ? sel : el("optgroup", {label: TNAME(t)});
+    KELS[t].forEach(k => parent.append(el("option", {value: kelKey(t,k), text: k})));
+    if (!S.tier) sel.append(parent);
+  });
+  sel.value = S.kel;
+}
+
+// ---------- KPIs
+function kpis(rows){
+  const box = $("#kpis"); box.textContent = "";
+  const views = rows.reduce((a,v)=>a+(v.views||0),0), likes = rows.reduce((a,v)=>a+(v.likes||0),0), comm = rows.reduce((a,v)=>a+(v.comments||0),0);
+  const heat = rows.reduce((a,v)=>a+v._heat,0);
+  const k = (l, v, d, title) => box.append(el("div",{class:"card kpi", title: title||null}, el("div",{class:"l",text:l}), el("div",{class:"v",text:v}), el("div",{class:"d",text:d})));
+  k("Video", NF.format(rows.length), S.exact ? "menyebut keyword" : "termasuk hasil 'mirip'");
+  k("Channel", NF.format(new Set(rows.map(v => v.channel_id)).size), "channel berbeda");
+  k("Total tayangan", fmtK(views), NF.format(views) + " tayangan");
+  k("Laju tayangan", fmtK(heat) + "/hari", "jumlah semua video · ukuran 'hot'", "Laju per video = kenaikan tayangan per hari antar run (bila sudah ada 2 pengukuran), atau rata-rata tayangan per hari sejak terbit.");
+  k("Engagement", views ? (((likes+comm)/views)*100).toLocaleString("id-ID",{maximumFractionDigits:2}) + "%" : "–", fmtK(likes) + " suka · " + fmtK(comm) + " komentar");
+  k("Baru", NF.format(rows.filter(v => v._new).length), LAST_RUN ? "ditemukan di run " + fmtDate(LAST_RUN, true) : "–");
+}
+
+// ---------- hot topics
+function hotTopics(){
+  const rows = base(S.htLevel === "kw" ? "kw" : "kel").filter(v => v._exact);
+  const box = $("#hot"); box.textContent = "";
+  $("#htHint").textContent = "Diurutkan menurut laju tayangan (tayangan/hari) dalam periode terpilih · tren = video terbit 7 hari terakhir vs 7 hari sebelumnya · klik untuk memfilter";
+  const T = {};
+  const d0 = new Date(NOW + WIB); const days14 = []; for (let i = 13; i >= 0; i--) days14.push(new Date(d0 - i*DAY).toISOString().slice(0,10));
+  rows.forEach(v => {
+    const seen = new Set();
+    mt(v).forEach(m => {
+      const key = S.htLevel === "kw" ? "kw:"+m.kw : "kel:"+kelKey(m.tier,m.kel);
+      if (seen.has(key)) return; seen.add(key);
+      const o = T[key] ||= {key, label: S.htLevel === "kw" ? m.kw : m.kel, sub: S.htLevel === "kw" ? m.kel : TNAME(m.tier), tier: m.tier, kw: m.kw, kel: kelKey(m.tier,m.kel), n:0, views:0, heat:0, r7:0, p7:0, daily:{}, top:null};
+      o.n++; o.views += v.views||0; o.heat += v._heat;
+      const age = (NOW - v._t)/DAY; if (age <= 7) o.r7++; else if (age <= 14) o.p7++;
+      o.daily[v._day] = (o.daily[v._day]||0) + 1;
+      if (!o.top || v._heat > o.top._heat) o.top = v;
+    });
+  });
+  const list = Object.values(T).sort((a,b) => b.heat - a.heat || b.n - a.n).slice(0, 12);
+  if (!list.length) { box.append(el("div",{class:"empty",text:"Belum ada topik untuk filter ini."})); return; }
+  const t = el("table",{class:"ht"}); const hr = el("tr");
+  [["#",""],["Topik",""],["14 hari","hide-sm"],["Video","num"],["Tayangan","num hide-sm"],["Laju/hari","num"],["Tren 7h","num"]].forEach(([h,c]) => hr.append(el("th",{class:c,text:h})));
+  t.append(el("thead",{},hr)); const tb = el("tbody");
+  const maxD = Math.max(1, ...list.flatMap(o => days14.map(d => o.daily[d]||0)));
+  list.forEach((o,i) => {
+    const sel = S.htLevel === "kw" ? S.kw === o.kw : S.kel === o.kel;
+    const tr = el("tr",{class:"row"+(sel?" sel":""), tabindex:"0", role:"button", "aria-label": `${o.label}: laju ${fmtK(o.heat)} tayangan per hari`});
+    const name = el("td",{class:"tp"}, o.label);
+    const sub = el("small",{}); if (!S.tier) sub.append(el("span",{class:"tb", style:`color:${TCOL(o.tier)}`, text:"T"+o.tier}), " "); sub.append(o.sub); name.append(sub);
+    const sp = sv("svg",{width:84,height:22,viewBox:"0 0 84 22","aria-hidden":"true"}); days14.forEach((d,j) => { const c = o.daily[d]||0; const h = c ? Math.max(2, c/maxD*20) : 1; sp.append(sv("rect",{x:j*6, y:22-h, width:4, height:h, rx:1, fill: c ? (S.tier ? (KCOL[o.kel]||TCOL(o.tier)) : TCOL(o.tier)) : "var(--line)"})); });
+    let mom, cls; if (o.p7 === 0 && o.r7 > 0) { mom = "baru"; cls = "new"; } else if (o.p7 === 0) { mom = "–"; cls = "flat"; } else { const p = Math.round((o.r7 - o.p7)/o.p7*100); mom = (p > 0 ? "▲ " : p < 0 ? "▼ " : "") + Math.abs(p) + "%"; cls = p > 0 ? "up" : p < 0 ? "down" : "flat"; }
+    tr.append(el("td",{class:"rk",text:i+1}), name, el("td",{class:"hide-sm"},sp), el("td",{class:"num",text:NF.format(o.n)}), el("td",{class:"num hide-sm",text:fmtK(o.views)}), el("td",{class:"num"}, el("span",{class:"heat",text:fmtK(o.heat)})), el("td",{class:"num"}, el("span",{class:"mom "+cls,text:mom})));
+    hover(tr, tt => { tipRows(tt, o.label, [[null,"video ("+o.r7+" terbit 7 hari terakhir, "+o.p7+" pada 7 hari sebelumnya)", NF.format(o.n)], [null,"tayangan", fmtK(o.views)], [null,"tayangan per hari", fmtK(o.heat)]]);
+      if (o.top) tt.append(el("div",{style:"margin-top:6px;color:var(--ink2)",text:"Paling hot: " + o.top.title}));
+      const meta = KWMETA[o.kw]; if (S.htLevel === "kw" && meta && meta.cari) tt.append(el("div",{style:"margin-top:4px;color:var(--ink3)",text:"Dicari: \"" + meta.q + "\" · " + ago(meta.last)})); });
+    clicky(tr, () => { if (S.htLevel === "kw") S.kw = S.kw === o.kw ? "" : o.kw; else { S.kel = S.kel === o.kel ? "" : o.kel; } render(); });
+    tb.append(tr);
+  });
+  t.append(tb); box.append(t);
+}
+function hotContent(rows){
+  const box = $("#hotc"); box.textContent = "";
+  const list = rows.filter(v => v._exact).sort((a,b) => b._heat - a._heat).slice(0, 8);
+  if (!list.length) { box.append(el("div",{class:"empty",text:"Belum ada video untuk filter ini."})); return; }
+  list.forEach((v,i) => {
+    const th = el("div",{class:"th"}); if (v.thumb) th.append(el("img",{src:v.thumb, alt:"", loading:"lazy", referrerpolicy:"no-referrer", onerror:imgErr}));
+    const g = groupOf(v);
+    const it = el("div",{class:"hci", tabindex:"0", role:"button", "aria-label": v.title},
+      el("div",{class:"rk",text:i+1}), th,
+      el("div",{style:"min-width:0"}, el("div",{class:"t",text:v.title, title:v.title}),
+        el("div",{class:"m"}, el("span",{class:"heat",text:"🔥 " + fmtK(v._heat) + "/hari"}), el("span",{text: fmtK(v.views) + " tayangan"}), el("span",{class:"tb", style:`color:${g.color}`, text: g.tier ? (S.tier ? g.label : "T"+g.tier) : "mirip"})),
+        el("div",{class:"m"}, el("span",{text: v.channel + " · " + fmtDate(v.published)}))));
+    hover(it, tt => tipRows(tt, v.title, [[null, v._heatSrc, fmtK(v._heat)+"/hari"], [null,"tayangan", fmtN(v.views)], [null,"suka · komentar", fmtK(v.likes)+" · "+fmtK(v.comments)]]));
+    clicky(it, () => openModal(v));
+    box.append(it);
+  });
+}
+
+// ---------- charts
+function dailyChart(rows){
+  const box = $("#daily"); box.textContent = ""; const lg = $("#lgDaily"); lg.textContent = "";
+  $("#dailyHint").textContent = (S.tier ? "Ditumpuk per kelompok " + (TSHORT[S.tier]||"") : "Ditumpuk per tier") + " · klik batang untuk memfilter hari itu";
+  if (!rows.length) { box.append(el("div",{class:"empty",text:"Tidak ada video untuk filter ini."})); return; }
+  const keys = [...new Set(rows.map(v => v._day))].sort();
+  let start = keys[0], end = keys[keys.length-1];
+  const today = new Date(NOW+WIB).toISOString().slice(0,10);
+  if (S.days) { start = new Date(NOW + WIB - (Math.max(S.days,1)-1)*DAY).toISOString().slice(0,10); end = today; }
+  const days = []; for (let t = Date.parse(start+"T00:00:00Z"); t <= Date.parse(end+"T00:00:00Z") && days.length < 400; t += DAY) days.push(new Date(t).toISOString().slice(0,10));
+  const G = {}; const order = [];
+  rows.forEach(v => { const g = groupOf(v); if (!G[g.key]) { G[g.key] = g; order.push(g.key); } });
+  const rank = k => k === "none" ? 999 : (S.tier ? KELS[S.tier].indexOf(G[k].kel) : G[k].tier||0);
+  order.sort((a,b) => rank(a) - rank(b));
+  order.forEach(k => lg.append(el("span",{}, el("i",{style:`background:${G[k].color}`}), G[k].label)));
+  const cnt = {}; rows.forEach(v => { const k = groupOf(v).key; (cnt[v._day] ||= {})[k] = (cnt[v._day][k]||0) + 1; });
+  const rawMax = Math.max(1, ...days.map(d => Object.values(cnt[d]||{}).reduce((a,b)=>a+b,0)));
+  const step = rawMax <= 4 ? 1 : Math.ceil(rawMax/4/ (rawMax > 40 ? 5 : 1)) * (rawMax > 40 ? 5 : 1), max = Math.ceil(rawMax/step)*step;
+  const W = Math.max(300, box.clientWidth || 800), H = 210, ml = 34, mr = 6, mt0 = 8, mb = 24;
+  const iw = W-ml-mr, ih = H-mt0-mb, bw = iw/days.length, gap = bw > 6 ? 2 : (bw > 3 ? 1 : 0);
+  const svg = sv("svg", {width: W, height: H, viewBox: `0 0 ${W} ${H}`, role:"img", "aria-label":"Video terbit per hari"});
+  const g0 = sv("g",{class:"axis"});
+  for (let y = 0; y <= max; y += step) { const yy = mt0 + ih - y/max*ih; g0.append(sv("line",{x1:ml,x2:W-mr,y1:yy,y2:yy,"stroke-width":1})); const t = sv("text",{x:ml-6,y:yy+3.5,"text-anchor":"end"}); t.textContent = NF.format(y); g0.append(t); }
+  svg.append(g0);
+  const every = Math.ceil(days.length / Math.max(2, Math.floor(iw/58)));
+  days.forEach((d,i) => {
+    const x = ml + i*bw; let y = mt0 + ih; const c = cnt[d] || {}; const tot = Object.values(c).reduce((a,b)=>a+b,0);
+    const g = sv("g", {class:"mark"+(S.day && S.day!==d ? " dim" : ""), tabindex: tot? "0" : "-1", role:"button", "aria-label": `${fmtDay(d)}: ${tot} video`});
+    g.append(sv("rect",{x:x, y:mt0, width:Math.max(1,bw), height:ih, fill:"transparent"}));
+    const segs = order.filter(k => c[k]);
+    segs.forEach((k, si) => { const h = c[k]/max*ih; const top = si === segs.length-1; const hh = Math.max(1, h - (si>0 ? 2 : 0)); y -= h;
+      const bx = x + gap/2, bwid = Math.max(1, bw-gap); let r;
+      if (top) { const rad = Math.min(4, bwid/2, hh); r = sv("path",{d:`M${bx},${y+hh} V${y+rad} Q${bx},${y} ${bx+rad},${y} H${bx+bwid-rad} Q${bx+bwid},${y} ${bx+bwid},${y+rad} V${y+hh} Z`}); }
+      else r = sv("rect",{x:bx, y:y, width:bwid, height:hh});
+      r.setAttribute("fill", G[k].color); g.append(r); });
+    hover(g, t => tipRows(t, fmtDay(d)+" · "+tot+" video", segs.slice().reverse().map(k => [G[k].color, G[k].label, NF.format(c[k])])));
+    if (tot) clicky(g, () => { S.day = S.day === d ? "" : d; render(); });
+    svg.append(g);
+    if (i % every === 0) { const t = sv("text",{x: x + bw/2, y: H-6, "text-anchor":"middle"}); t.textContent = fmtDay(d); svg.append(t); }
+  });
+  box.append(svg);
+}
+function hbars(boxSel, items, opts){
+  const box = $(boxSel); box.textContent = "";
+  if (!items.length) { box.append(el("div",{class:"empty",text: opts.empty || "Tidak ada data."})); return; }
+  const max = Math.max(...items.map(i => i.n));
+  items.forEach(it => {
+    const row = el("div", {class: "hbar-row" + (opts.sel(it.key) ? " sel" : "") + (opts.anySel() && !opts.sel(it.key) ? " dim" : ""), tabindex:"0", role:"button", "aria-label": `${it.label}: ${it.n}`});
+    const b = el("div",{class:"b"}); b.append(el("i",{style:`width:${Math.max(2, it.n/max*100)}%;background:${it.color||"var(--accent)"}`}));
+    row.append(el("div",{class:"n",text:it.label, title: it.label}), b, el("div",{class:"v",text:NF.format(it.n)}));
+    hover(row, t => tipRows(t, it.label, it.rows));
+    clicky(row, () => opts.pick(it.key));
+    box.append(row);
+  });
+}
+
+// ---------- results
+function sorted(rows){
+  const f = {hot:(a,b)=>b._heat-a._heat, pub:(a,b)=>b._t-a._t, views:(a,b)=>(b.views||0)-(a.views||0), eng:(a,b)=>b._eng-a._eng||(b.views||0)-(a.views||0), comments:(a,b)=>(b.comments||0)-(a.comments||0)}[S.sort];
+  return rows.slice().sort(f);
+}
+function tagsFor(v, all){
+  const t = el("div",{class:"tags"});
+  if (!v._exact) { t.append(el("span",{class:"tag nomatch", text:"hanya 'mirip' menurut YouTube"})); return t; }
+  const seen = new Set();
+  (all ? v._m : mt(v)).forEach(m => { if (seen.has(m.kw)) return; seen.add(m.kw);
+    const col = S.tier && !all ? (KCOL[kelKey(m.tier,m.kel)]||"var(--other)") : TCOL(m.tier);
+    const s = el("span",{class:"tag", title: TNAME(m.tier) + " · " + m.kel + " · ditemukan di: " + m.di.join(", ")}); s.append(el("i",{style:`background:${col}`}), (S.tier && !all ? "" : "T"+m.tier+" · ") + m.kw); t.append(s); });
+  return t;
+}
+function cards(rows){
+  const box = $("#results"); box.textContent = "";
+  if (!rows.length) { box.append(el("div",{class:"card empty",text:"Tidak ada video untuk filter ini. Coba perpanjang periode, pilih tier lain, atau matikan 'Hanya yang menyebut keyword'."})); return; }
+  const grid = el("div",{class:"grid-cards"});
+  rows.slice(0, S.shown).forEach(v => {
+    const th = el("div",{class:"thumb"});
+    if (v.thumb) th.append(el("img",{src:v.thumb, alt:"", loading:"lazy", referrerpolicy:"no-referrer", onerror:imgErr}));
+    if (v.duration) th.append(el("span",{class:"dur",text:fmtDur(v.duration)}));
+    if (v.live && v.live !== "none") th.append(el("span",{class:"livb",text: v.live === "live" ? "LIVE" : "AKAN TAYANG"}));
+    if (v._new) th.append(el("span",{class:"newb",text:"BARU"}));
+    if (v._exact && v._heat >= HOTCUT) th.append(el("span",{class:"hotb",text:"🔥 HOT"}));
+    const c = el("article",{class:"card vcard", tabindex:"0", role:"button", "aria-label": v.title},
+      th,
+      el("div",{class:"vbody"},
+        el("div",{class:"vtitle",text:v.title, title:v.title}),
+        el("div",{class:"vmeta"}, el("span",{text:v.channel}), el("span",{text:fmtDate(v.published, true)})),
+        tagsFor(v),
+        el("div",{class:"vstats"}, el("span",{class:"heat",text:"🔥 "+fmtK(v._heat)+"/hari", title:v._heatSrc}), el("span",{text:"▶ "+fmtK(v.views)}), el("span",{text:"👍 "+fmtK(v.likes)}), el("span",{text:"💬 "+fmtK(v.comments)}))));
+    clicky(c, () => openModal(v));
+    grid.append(c);
+  });
+  box.append(grid);
+  if (rows.length > S.shown) box.append(el("div",{class:"more"}, el("button",{class:"btn", text:`Tampilkan lebih banyak (${NF.format(rows.length - S.shown)} lagi)`, onclick:()=>{ S.shown += 48; renderResults(); }})));
+}
+const COLS = [["Terbit","pub",v=>fmtDate(v.published,true)],["Judul",null,v=>v.title],["Channel",null,v=>v.channel],["Tier",null,v=>v._exact?v._tiers.map(t=>"T"+t).join(", "):"mirip"],["Kelompok",null,v=>[...new Set(mt(v).map(m=>m.kel))].join(", ")],["Keyword",null,v=>[...new Set(mt(v).map(m=>m.kw))].join(", ")],["Laju/hari","hot",v=>fmtN(v._heat),1],["Tayangan","views",v=>fmtN(v.views),1],["Komentar","comments",v=>fmtN(v.comments),1],["Engagement","eng",v=>v.views?(v._eng*100).toLocaleString("id-ID",{maximumFractionDigits:2})+"%":"–",1],["Durasi",null,v=>fmtDur(v.duration),1]];
+function table(rows){
+  const box = $("#results"); box.textContent = "";
+  const t = el("table",{class:"rt"}); const tr = el("tr");
+  COLS.forEach(([h, key,, num]) => tr.append(el("th",{class: num?"num":"", text: h + (key && S.sort===key ? " ▾" : ""), title: key ? "Urutkan" : "", onclick: key ? ()=>{ S.sort = key; $("#sort").value = key; renderResults(); } : null})));
+  t.append(el("thead",{}, tr)); const tb = el("tbody");
+  rows.slice(0, 1000).forEach(v => { const r = el("tr",{style:"cursor:pointer", onclick:()=>openModal(v)}); COLS.forEach(([,, f, num]) => r.append(el("td",{class:num?"num":"", text:f(v)}))); tb.append(r); });
+  t.append(tb); const w = el("div",{class:"card tbl-wrap"}); w.append(t); box.append(w);
+  if (rows.length > 1000) box.append(el("div",{class:"empty",text:"Menampilkan 1.000 baris pertama; unduh CSV untuk semuanya."}));
+}
+function renderResults(){
+  const rows = sorted(base());
+  $("#resTitle").textContent = NF.format(rows.length) + " video";
+  S.view === "cards" ? cards(rows) : table(rows);
+}
+
+// ---------- modal
+function spark(hist){
+  if (!hist || hist.length < 2) return null;
+  const W = 240, H = 54, max = Math.max(...hist.map(h=>h[1])), min = Math.min(...hist.map(h=>h[1]));
+  const pts = hist.map((h,i) => [i/(hist.length-1)*W, H-4 - (max===min?0.5:(h[1]-min)/(max-min))*(H-10)]);
+  const svg = sv("svg",{width:W,height:H,viewBox:`0 0 ${W} ${H}`, role:"img", "aria-label":"Riwayat tayangan"});
+  svg.append(sv("polyline",{points:pts.map(p=>p.join(",")).join(" "), fill:"none", stroke:"var(--accent)", "stroke-width":2, "stroke-linejoin":"round", "stroke-linecap":"round"}));
+  const last = pts[pts.length-1]; svg.append(sv("circle",{cx:last[0],cy:last[1],r:4,fill:"var(--accent)",stroke:"var(--surface)","stroke-width":2}));
+  return el("div",{}, el("div",{style:"font-size:12px;color:var(--ink3);margin:12px 0 4px", text:`Tayangan ${fmtDay(hist[0][0])} → ${fmtDay(hist[hist.length-1][0])}`}), svg);
+}
+function openModal(v){
+  hideTip(); const b = $("#mbox"); b.textContent = "";
+  b.append(el("button",{class:"close", "aria-label":"Tutup", text:"×", onclick:closeModal}));
+  const pl = el("div",{class:"player"}); const watch = "https://www.youtube.com/watch?v="+encodeURIComponent(v.id);
+  if (location.protocol === "http:" || location.protocol === "https:") {
+    pl.append(el("iframe",{src:"https://www.youtube-nocookie.com/embed/"+encodeURIComponent(v.id)+"?autoplay=1&rel=0", title:v.title, allow:"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture", allowfullscreen:true, referrerpolicy:"strict-origin-when-cross-origin"}));
+  } else {   // local file: YouTube refuses embedded playback without a referrer
+    const a = el("a",{class:"poster", href:watch, target:"_blank", rel:"noopener", title:"Putar di YouTube"});
+    a.append(el("img",{src:(v.thumb||"").replace("mqdefault","hqdefault"), alt:"", referrerpolicy:"no-referrer", onerror:imgErr}), el("span",{}, el("b",{text:"▶"}), "Putar di YouTube"));
+    pl.append(a);
+  }
+  const ch = (RAW.channels||{})[v.channel_id] || {};
+  const left = el("div",{}, el("h3",{text:v.title}), el("div",{class:"vmeta"}, el("a",{href: ch.url || ("https://www.youtube.com/channel/"+v.channel_id), target:"_blank", rel:"noopener", text:v.channel}), el("span",{text:fmtDate(v.published,true)})), el("div",{style:"margin-top:8px"}, tagsFor(v, true)));
+  if (v._exact) left.append(el("div",{style:"font-size:12px;color:var(--ink3);margin-top:6px", text:"Ditemukan di: " + [...new Set(v._m.flatMap(m=>m.di))].join(", ")}));
+  if (v.queries && v.queries.length) left.append(el("div",{style:"font-size:12px;color:var(--ink3);margin-top:2px", text:"Muncul di pencarian: " + v.queries.slice(0,6).join(" · ")}));
+  left.append(el("div",{class:"desc",text:v.desc || "(tanpa deskripsi)"}));
+  const dl = el("dl"); const add = (k,val) => dl.append(el("dt",{text:k}), el("dd",{text:val}));
+  add("Laju tayangan", fmtK(v._heat) + "/hari"); add("Tayangan", fmtN(v.views)); add("Suka", fmtN(v.likes)); add("Komentar", fmtN(v.comments)); add("Engagement", v.views ? (v._eng*100).toLocaleString("id-ID",{maximumFractionDigits:2})+"%" : "–"); add("Durasi", fmtDur(v.duration)||"–");
+  add("Subscriber channel", ch.subscriber == null ? "disembunyikan" : fmtK(ch.subscriber)); add("Pertama tercatat", fmtDate(v.first_seen,true)); add("Statistik per", fmtDate(v.last_updated,true));
+  const side = el("div",{class:"side"}, dl, el("div",{style:"font-size:11.5px;color:var(--ink3);margin-top:4px",text:"Laju = " + v._heatSrc}), spark(v.hist), el("div",{style:"margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"}, el("a",{class:"btn primary", href:watch, target:"_blank", rel:"noopener", style:"text-decoration:none", text:"Buka di YouTube ↗"}), el("button",{class:"btn", text:"Salin link", onclick:e=>{ navigator.clipboard && navigator.clipboard.writeText(watch).then(()=>{ e.target.textContent = "Tersalin ✓"; }); }})));
+  b.append(pl, el("div",{class:"mbody"}, left, side));
+  $("#modal").style.display = "flex"; document.body.style.overflow = "hidden"; b.querySelector(".close").focus();
+}
+function closeModal(){ $("#modal").style.display = "none"; $("#mbox").textContent = ""; document.body.style.overflow = ""; }
+$("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+addEventListener("keydown", e => { if (e.key === "Escape" && $("#modal").style.display === "flex") closeModal(); });
+
+// ---------- CSV
+$("#csv").onclick = () => {
+  const rows = sorted(base());
+  const head = ["terbit_wib","judul","channel","tier","kelompok","keyword","ditemukan_di","laju_tayangan_per_hari","tayangan","suka","komentar","engagement_persen","durasi_detik","link"];
+  const q = s => '"' + String(s ?? "").replace(/"/g,'""') + '"';
+  const lines = [head.join(",")].concat(rows.map(v => [fmtDate(v.published,true), v.title, v.channel, v._exact ? v._tiers.join("; ") : "mirip", [...new Set(v._m.map(m=>m.kel))].join("; "), [...new Set(v._m.map(m=>m.kw))].join("; "), [...new Set(v._m.flatMap(m=>m.di))].join("; "), Math.round(v._heat), v.views??"", v.likes??"", v.comments??"", v.views?(v._eng*100).toFixed(2):"", v.duration||"", "https://www.youtube.com/watch?v="+v.id].map(q).join(",")));
+  const blob = new Blob(["﻿" + lines.join("\r\n")], {type:"text/csv;charset=utf-8"});
+  const a = el("a",{href:URL.createObjectURL(blob), download:"youtube_mpm_" + (S.tier ? "tier"+S.tier+"_" : "") + new Date().toISOString().slice(0,10) + ".csv"}); document.body.append(a); a.click(); a.remove();
+};
+
+// ---------- controls
+document.querySelectorAll("#period button").forEach(b => b.onclick = () => { S.days = +b.dataset.d; S.day = ""; render(); });
+let qt; $("#q").addEventListener("input", e => { clearTimeout(qt); qt = setTimeout(() => { S.q = e.target.value.trim().toLowerCase(); render(); }, 150); });
+$("#kel").onchange = e => { S.kel = e.target.value; if (S.kel && !S.tier) S.tier = +S.kel.split("|")[0]; render(); };
+$("#channel").onchange = e => { S.channel = e.target.value; render(); };
+$("#minviews").onchange = e => { S.minv = +e.target.value; render(); };
+$("#exact").onchange = e => { S.exact = e.target.checked; render(); };
+$("#onlynew").onchange = e => { S.onlynew = e.target.checked; render(); };
+$("#sort").onchange = e => { S.sort = e.target.value; renderResults(); };
+document.querySelectorAll("#htLevel button").forEach(b => b.onclick = () => { S.htLevel = b.dataset.l; if (S.htLevel === "kel") S.kw = ""; document.querySelectorAll("#htLevel button").forEach(x => x.setAttribute("aria-pressed", x === b)); render(); });
+document.querySelectorAll("#viewmode button").forEach(b => b.onclick = () => { S.view = b.dataset.v; document.querySelectorAll("#viewmode button").forEach(x => x.setAttribute("aria-pressed", x === b)); renderResults(); });
+$("#reset").onclick = () => { Object.assign(S, {tier:0, days:14, q:"", kel:"", channel:"", minv:0, exact:true, onlynew:false, day:"", kw:"", shown:48}); $("#q").value=""; $("#channel").value=""; $("#minviews").value="0"; $("#exact").checked=true; $("#onlynew").checked=false; render(); };
+
+function activeChips(){
+  const box = $("#active"); box.textContent = "";
+  const chip = (label, clear) => box.append(el("span",{class:"chip"}, label, el("button",{"aria-label":"Hapus filter "+label, text:"×", onclick:()=>{ clear(); render(); }})));
+  if (S.kel) chip("Kelompok: " + S.kel.split("|").slice(1).join("|"), () => S.kel = "");
+  if (S.kw) chip("Keyword: " + S.kw, () => S.kw = "");
+  if (S.day) chip("Hari: " + fmtDay(S.day), () => S.day = "");
+  if (S.channel) chip("Channel: " + S.channel, () => { S.channel = ""; $("#channel").value = ""; });
+}
+
+function render(){
+  S.shown = 48; hideTip();
+  document.querySelectorAll("#period button").forEach(b => b.setAttribute("aria-pressed", +b.dataset.d === S.days));
+  tierTabs(); kelSelect(); activeChips();
+  const all = base();
+  kpis(all);
+  hotTopics();
+  hotContent(all);
+  dailyChart(base("day"));
+  // per tier (all tiers) or per kelompok (one tier)
+  if (!S.tier) {
+    $("#byGroupTitle").textContent = "Per tier";
+    const bt = base("tier"); const c = {}; bt.filter(v=>v._exact).forEach(v => v._tiers.forEach(t => { const o = c[t] ||= {n:0, views:0, heat:0}; o.n++; o.views += v.views||0; o.heat += v._heat; }));
+    hbars("#bygroup", TIERS.filter(t => c[t]).map(t => ({key:t, label:TNAME(t), n:c[t].n, color:TCOL(t), rows:[[TCOL(t),"video",NF.format(c[t].n)],[null,"tayangan",fmtK(c[t].views)],[null,"laju/hari",fmtK(c[t].heat)]]})),
+      {sel:()=>false, anySel:()=>false, pick:t=>{ S.tier = t; render(); }});
+  } else {
+    $("#byGroupTitle").textContent = "Per kelompok " + (TSHORT[S.tier]||"");
+    const bk = base("kel"); const c = {}; bk.forEach(v => new Set(mt(v).map(m => kelKey(m.tier,m.kel))).forEach(k => { const o = c[k] ||= {n:0, views:0, heat:0}; o.n++; o.views += v.views||0; o.heat += v._heat; }));
+    hbars("#bygroup", KELS[S.tier].map(k => kelKey(S.tier,k)).filter(k => c[k]).sort((a,b)=>c[b].n-c[a].n).map(k => ({key:k, label:k.split("|").slice(1).join("|"), n:c[k].n, color:KCOL[k], rows:[[KCOL[k],"video",NF.format(c[k].n)],[null,"tayangan",fmtK(c[k].views)],[null,"laju/hari",fmtK(c[k].heat)]]})),
+      {sel:k=>S.kel===k, anySel:()=>!!S.kel, pick:k=>{ S.kel = S.kel===k ? "" : k; render(); }});
+  }
+  const bc = base("channel"); const cc = {}; bc.forEach(v => { const o = cc[v.channel] ||= {n:0, views:0, id:v.channel_id}; o.n++; o.views += v.views||0; });
+  hbars("#bychannel", Object.entries(cc).sort((a,b)=>b[1].n-a[1].n||b[1].views-a[1].views).slice(0,10).map(([c,o]) => { const ch = (RAW.channels||{})[o.id]||{}; return {key:c, label:c, n:o.n, rows:[["var(--accent)", "video", NF.format(o.n)], [null, "tayangan", fmtK(o.views)], [null, "subscriber", ch.subscriber==null?"disembunyikan":fmtK(ch.subscriber)]]}; }),
+    {sel:k=>S.channel===k, anySel:()=>!!S.channel, pick:k=>{ S.channel = S.channel===k ? "" : k; $("#channel").value = S.channel; render(); }});
+  const bk2 = base("kw"); const kc = {}; bk2.forEach(v => new Set(mt(v).map(m=>m.kw)).forEach(k => kc[k] = (kc[k]||0) + 1));
+  hbars("#bykw", Object.entries(kc).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([k,n]) => { const meta = KWMETA[k]||{}; const col = S.tier ? (KCOL[kelKey(meta.tier,meta.kel)]||"var(--accent)") : TCOL(meta.tier||1); return {key:k, label:k, n, color:col, rows:[[col, "video", NF.format(n)], [null, "kelompok", meta.kel||"–"], [null, "tier", meta.tier ? TNAME(meta.tier) : "–"]]}; }),
+    {sel:k=>S.kw===k, anySel:()=>!!S.kw, pick:k=>{ S.kw = S.kw===k ? "" : k; render(); }, empty: "Tidak ada video yang menyebut keyword untuk filter ini."});
+  renderResults();
+}
+let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => dailyChart(base("day")), 150); });
+if (!V.length) { $("#results").append(el("div",{class:"card empty",text:"Belum ada data. Jalankan JALANKAN.bat (atau python yt_crawl.py) dulu."})); }
+render();
+})();
+</script>
+</body>
+</html>
